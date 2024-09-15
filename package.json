@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postprod": "cpx \"./src/fonts/*\" dist/fonts",
-    "build": "npx tsc && npm run postprod"
+    "build": "npx tsc && npm run postprod",
+    "start": "node dist/server.js"
   },
   "author": "",
   "license": "ISC",
