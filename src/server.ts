@@ -1,8 +1,7 @@
 import fastify from "fastify";
 import { pdfGenerate } from "./utils/pdf_generator.js";
-import axios from "axios";
-import jsdom from "jsdom";
-import { convert } from "html-to-text";
+import { Heap } from "heap-js";
+import { JSDOM } from "jsdom";
 
 const server = fastify();
 
@@ -10,44 +9,55 @@ interface IQuerystring {
   url: string;
 }
 
+function* traverse(node: Document | ChildNode): Generator<string, undefined> {
+  switch (node.nodeName) {
+    case "#text":
+      if (node.nodeValue) {
+        yield node.nodeValue;
+      }
+      return;
+
+    case "#comment":
+    case "SCRIPT":
+    case "STYLE":
+      return;
+  }
+
+  for (const child of node.childNodes) {
+    yield* traverse(child);
+  }
+}
+
+async function main(url: string): Promise<string[]> {
+  const NUM_WORDS = 10;
+
+  const dom = await JSDOM.fromURL(url);
+  dom.serialize();
+
+  const heap = new Heap((a: string, b: string) => a.length - b.length);
+  for (const str of traverse(dom.window.document)) {
+    const words = str
+      .split(/[\n\s.,\/#!$%\^&\*;:{}=\-_`~()]+/)
+      .filter((word: string) => word && !heap.contains(word));
+
+    heap.push(...words);
+    while (heap.size() > NUM_WORDS) {
+      heap.pop();
+    }
+  }
+
+  return heap.toArray() as string[];
+}
+
 server.get<{ Querystring: IQuerystring }>(
   "/getLongWords",
   async (response, reply) => {
     const { url } = response.query;
-    const responseFromAxios = await axios.get(url);
-    const { JSDOM } = jsdom;
-    const dom = new JSDOM(responseFromAxios.data);
-    const tags = dom.window.document.body.querySelectorAll("p");
-    let str = "";
-    for (const element of tags) {
-      if (element.textContent) {
-        console.log(element.textContent);
-        str = str + element.textContent.replace(/[^a-zа-яё\s-]/gi, "");
-      }
-    }
-    const text = convert(responseFromAxios.data, { wordwrap: 130 });
-    console.log(text);
-    const buffer = await pdfGenerate(
-      str
-        .split(" ")
-        .sort(function (a, b) {
-          return b.length - a.length;
-        })
-        .slice(0, 10)
-    );
+    const strArray = await main(url);
+    const buffer = await pdfGenerate(strArray);
     reply.type("application/pdf");
     reply.header("content-disposition", `attachment; filename="longWords.pdf"`);
     reply.send(buffer);
-  }
-);
-
-server.get<{ Querystring: IQuerystring }>(
-  "/getJSDOM",
-  async (response, reply) => {
-    const { url } = response.query;
-    const { JSDOM } = jsdom;
-    const jsdom2 = await JSDOM.fromURL(url);
-    console.log(jsdom2.window.document.body.querySelector("p")?.textContent);
   }
 );
 

@@ -14,6 +14,7 @@
   "devDependencies": {
     "@types/html-to-text": "^9.0.4",
     "@types/jsdom": "^21.1.7",
+    "@types/make-fetch-happen": "^10.0.4",
     "@types/node": "^22.5.5",
     "@types/pdfkit": "^0.13.4",
     "cpx": "^1.5.0",
@@ -23,8 +24,10 @@
     "@types/axios": "^0.14.0",
     "axios": "^1.7.7",
     "fastify": "^4.28.1",
+    "heap-js": "^2.5.0",
     "html-to-text": "^9.0.5",
     "jsdom": "^25.0.0",
+    "make-fetch-happen": "^13.0.1",
     "pdfkit": "^0.15.0"
   },
   "keywords": [],
