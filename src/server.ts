@@ -28,13 +28,13 @@ function* traverse(node: Document | ChildNode): Generator<string, undefined> {
   }
 }
 
-async function main(url: string): Promise<string[]> {
+async function getWordsFromUrl(url: string): Promise<string[]> {
   const NUM_WORDS = 10;
 
   const dom = await JSDOM.fromURL(url);
   dom.serialize();
 
-  const heap = new Heap((a: string, b: string) => a.length - b.length);
+  const heap = new Heap<string>((a: string, b: string) => a.length - b.length);
   for (const str of traverse(dom.window.document)) {
     const words = str
       .split(/[\n\s.,\/#!$%\^&\*;:{}=\-_`~()]+/)
@@ -46,18 +46,39 @@ async function main(url: string): Promise<string[]> {
     }
   }
 
-  return heap.toArray() as string[];
+  return heap.toArray();
 }
+
+server.get("/", async (request, reply) => {
+  reply.type("text/html");
+  reply.header("Content-Type", "text/html; charset=utf-8");
+  reply.send(`
+    <head>Введите URL</head>
+    <body>
+    <form method="get" action="/getLongWords">
+ <input type="text" name="url" required />
+ <input type="submit" value="Сгенерировать PDF" />
+</form>
+</body>`);
+});
 
 server.get<{ Querystring: IQuerystring }>(
   "/getLongWords",
-  async (response, reply) => {
-    const { url } = response.query;
-    const strArray = await main(url);
-    const buffer = await pdfGenerate(strArray);
-    reply.type("application/pdf");
-    reply.header("content-disposition", `attachment; filename="longWords.pdf"`);
-    reply.send(buffer);
+  async (request, reply) => {
+    try {
+      const { url } = request.query;
+      const strArray = await getWordsFromUrl(url);
+      const doc = await pdfGenerate(strArray);
+      reply.type("application/pdf");
+      reply.header(
+        "content-disposition",
+        `attachment; filename="longWords.pdf"`
+      );
+      await reply.send(doc);
+    } catch (error) {
+      console.error(error);
+      throw new Error();
+    }
   }
 );
 

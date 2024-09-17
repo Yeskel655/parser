@@ -5,8 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postprod": "cpx \"./src/fonts/*\" dist/fonts",
-    "build": "npx tsc && npm run postprod",
-    "start": "node dist/server.js"
+    "build": "npx tsc --noEmit && npm run postprod",
+    "start": "npx tsx ./src/server.ts"
   },
   "author": "",
   "license": "ISC",
@@ -21,8 +21,6 @@
     "typescript": "^5.6.2"
   },
   "dependencies": {
-    "@types/axios": "^0.14.0",
-    "axios": "^1.7.7",
     "fastify": "^4.28.1",
     "heap-js": "^2.5.0",
     "html-to-text": "^9.0.5",
